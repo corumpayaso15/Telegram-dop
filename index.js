@@ -5,119 +5,106 @@ const ADMIN_ID = 8071793611;
 
 const bot = new TelegramBot(token, { polling: true });
 
-let step = {};
+// 📦 estados separados
+let state = {};
 let order = {};
 
-// 🟢 INICIO
+// 🟢 START
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  bot.sendMessage(chatId,
-`🏢 TIENDA OFICIAL
+  state[chatId] = null;
 
-Seleccione una opción:`,
-  {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "🛍 Comprar producto", callback_data: "buy" }],
-        [{ text: "💬 Soporte", callback_data: "support" }]
-      ]
-    }
-  });
+  bot.sendMessage(chatId,
+`🏢 TIENDA OFICIAL`,
+{
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "🛍 Comprar", callback_data: "buy" }],
+      [{ text: "💬 Soporte", callback_data: "support" }]
+    ]
+  }
+});
 });
 
-bot.on('callback_query', (query) => {
-  const chatId = query.message.chat.id;
+bot.on('callback_query', (q) => {
+  const chatId = q.message.chat.id;
 
-  // 🛍 COMPRA
-  if (query.data === "buy") {
-    step[chatId] = "product";
+  if (q.data === "buy") {
+    state[chatId] = "PRODUCT";
     order[chatId] = {};
 
-    bot.sendMessage(chatId,
-`📦 Escriba el nombre del producto que desea comprar:`);
+    bot.sendMessage(chatId, "📦 Escribe el producto que deseas:");
   }
 
-  // 💬 SOPORTE (DIRECTO A CHAT ADMIN)
-  if (query.data === "support") {
-    step[chatId] = "support";
+  if (q.data === "support") {
+    state[chatId] = "SUPPORT";
 
-    bot.sendMessage(chatId,
-`💬 SOPORTE
-
-Escriba su duda o problema y será atendido.`);
+    bot.sendMessage(chatId, "💬 Escribe tu duda o problema:");
   }
 
-  bot.answerCallbackQuery(query.id);
+  bot.answerCallbackQuery(q.id);
 });
 
+// 📩 MENSAJES ORDENADOS
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
-  if (!step[chatId]) return;
+  if (!state[chatId]) return;
 
-  // 📦 PRODUCTO
-  if (step[chatId] === "product") {
+  // 🛍 PRODUCTO
+  if (state[chatId] === "PRODUCT") {
     order[chatId].product = text;
-    step[chatId] = "address";
+    state[chatId] = "ADDRESS";
 
-    bot.sendMessage(chatId,
-`📍 Escriba su dirección completa:`);
-    return;
+    return bot.sendMessage(chatId, "📍 Escribe tu dirección completa:");
   }
 
   // 📍 DIRECCIÓN
-  if (step[chatId] === "address") {
+  if (state[chatId] === "ADDRESS") {
     order[chatId].address = text;
-    step[chatId] = "payment";
+    state[chatId] = "PAYMENT";
 
-    bot.sendMessage(chatId,
+    return bot.sendMessage(chatId,
 `💳 Método de pago:
-
 • Transferencia
 • Depósito
 
-Escriba su opción:`);
-    return;
+Escribe tu opción:`);
   }
 
   // 💳 PAGO
-  if (step[chatId] === "payment") {
+  if (state[chatId] === "PAYMENT") {
     order[chatId].payment = text;
-    step[chatId] = "proof";
+    state[chatId] = "PROOF";
 
-    bot.sendMessage(chatId,
-`🏦 DATOS BANCARIOS:
+    return bot.sendMessage(chatId,
+`🏦 DATOS:
 
-Cuenta: 728969000086679496
+728969000086679496
 Banco: STP
 Nombre: julio escalera ortiz
 Concepto: Escolar
 
-📩 Envíe su comprobante de pago:`);
-    return;
+📩 Envía tu comprobante`);
   }
 
-  // 📩 COMPROBANTE → ADMIN
-  if (step[chatId] === "proof") {
+  // 📩 COMPROBANTE
+  if (state[chatId] === "PROOF") {
 
     const orderId = Math.floor(Math.random() * 100000);
 
     bot.sendMessage(chatId,
-`✅ Pedido confirmado
-
-🧾 ID: #${orderId}
-📦 En revisión`);
+`✅ Pedido recibido
+🧾 ID: #${orderId}`);
 
     bot.sendMessage(ADMIN_ID,
 `🚨 NUEVO PEDIDO #${orderId}
 
-🛍 Producto:
-${order[chatId].product}
+🛍 Producto: ${order[chatId].product}
 
-👤 Cliente:
-${chatId}
+👤 Cliente: ${chatId}
 
 📍 Dirección:
 ${order[chatId].address}
@@ -128,23 +115,23 @@ ${order[chatId].payment}
 📩 Comprobante:
 ${text}`);
 
-    step[chatId] = "done";
+    state[chatId] = null;
+    return;
   }
 
-  // 💬 SOPORTE DIRECTO A ADMIN
-  if (step[chatId] === "support") {
+  // 💬 SOPORTE (SEPARADO Y LIMPIO)
+  if (state[chatId] === "SUPPORT") {
 
-    bot.sendMessage(chatId,
-`✅ Su mensaje fue enviado a soporte.`);
+    bot.sendMessage(chatId, "✅ Mensaje enviado a soporte.");
 
     bot.sendMessage(ADMIN_ID,
-`💬 NUEVO MENSAJE DE SOPORTE
+`💬 SOPORTE
 
 👤 Usuario: ${chatId}
 
 📝 Mensaje:
 ${text}`);
 
-    step[chatId] = "done";
+    state[chatId] = null;
   }
 });
