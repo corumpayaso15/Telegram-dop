@@ -5,18 +5,19 @@ const ADMIN_ID = 8071793611;
 
 const bot = new TelegramBot(token, { polling: true });
 
-// 📦 estados
 let state = {};
 let order = {};
 
-// 🟢 START
+// 🟢 INICIO
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
   state[chatId] = null;
 
   bot.sendMessage(chatId,
-`🏢 TIENDA OFICIAL`,
+`🏢 TIENDA OFICIAL
+
+Seleccione una opción:`,
 {
   reply_markup: {
     inline_keyboard: [
@@ -31,23 +32,29 @@ bot.onText(/\/start/, (msg) => {
 bot.on('callback_query', (q) => {
   const chatId = q.message.chat.id;
 
+  // 🛍 COMPRA
   if (q.data === "buy") {
     state[chatId] = "PRODUCT";
     order[chatId] = {};
 
-    bot.sendMessage(chatId, "📦 Escribe el producto que deseas:");
+    bot.sendMessage(chatId,
+`📦 Escribe el producto que deseas comprar:`);
   }
 
+  // 💬 SOPORTE
   if (q.data === "support") {
     state[chatId] = "SUPPORT";
 
-    bot.sendMessage(chatId, "💬 Escribe tu duda o problema:");
+    bot.sendMessage(chatId,
+`💬 SOPORTE
+
+Escribe tu duda o problema y será enviado directamente al administrador.`);
   }
 
   bot.answerCallbackQuery(q.id);
 });
 
-// 🟢 FLUJO ORDENADO
+// 🟢 FLUJO PRINCIPAL
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
@@ -59,7 +66,8 @@ bot.on('message', (msg) => {
     order[chatId].product = text;
     state[chatId] = "ADDRESS";
 
-    return bot.sendMessage(chatId, "📍 Escribe tu dirección completa:");
+    return bot.sendMessage(chatId,
+`📍 Escribe tu dirección completa:`);
   }
 
   // 📍 DIRECCIÓN
@@ -89,7 +97,7 @@ Banco: STP
 Nombre: julio escalera ortiz
 Concepto: Escolar
 
-📩 Envía tu comprobante`);
+📩 Envía tu comprobante de pago`);
   }
 
   // 📩 COMPROBANTE → ADMIN
@@ -98,8 +106,10 @@ Concepto: Escolar
     const orderId = Math.floor(Math.random() * 100000);
 
     bot.sendMessage(chatId,
-`✅ Pedido recibido
-🧾 ID: #${orderId}`);
+`✅ Pedido confirmado
+
+🧾 ID: #${orderId}
+📦 En revisión`);
 
     bot.sendMessage(ADMIN_ID,
 `🚨 NUEVO PEDIDO #${orderId}
@@ -123,15 +133,23 @@ ${text}`);
     return;
   }
 
-  // 💬 SOPORTE (DIRECTO A TI)
+  // 💬 SOPORTE DIRECTO A TI
   if (state[chatId] === "SUPPORT") {
 
-    bot.sendMessage(chatId, "✅ Mensaje enviado a soporte.");
+    const ticketId = Math.floor(Math.random() * 100000);
+
+    bot.sendMessage(chatId,
+`✅ Mensaje enviado a soporte
+
+🧾 ID: #${ticketId}`);
 
     bot.sendMessage(ADMIN_ID,
 `💬 SOPORTE
 
-👤 Usuario: ${chatId}
+🧾 ID: #${ticketId}
+
+👤 Usuario:
+${chatId}
 
 📝 Mensaje:
 ${text}`);
