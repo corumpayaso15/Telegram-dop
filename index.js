@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 
 // 🔑 PON AQUÍ TU TOKEN NUEVO DE BOTFATHER
-const token = '8977522670:AAF-ZAO0lhV6PJ9krJ7QZnjyXhA32yuBics';
+const token = '8977522670:AAHoF-iVaCRNoMJxdcNE22L5Og5bKmDNkiA';
 
 // 👤 TU ID (ADMIN)
 const ADMIN_ID = 8071793611;
