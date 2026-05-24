@@ -25,7 +25,7 @@ Selecciona una opción:`,
         [
           {
             text: "🛍 Ver catálogo",
-            web_app: { url: "https://TU-PAGINA-WEB.com" }
+            web_app: { url: "https://cdpn.io/pen/debug/VYmzpdM?authentication_hash=LDAmdmBLVQnr" }
           }
         ],
         [
