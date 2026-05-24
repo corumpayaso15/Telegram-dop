@@ -8,21 +8,19 @@ const bot = new TelegramBot(token, { polling: true });
 let state = {};
 let order = {};
 
-// 🟢 INICIO
+// 🟢 START
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  state[chatId] = null;
+  state[chatId] = "MENU";
 
   bot.sendMessage(chatId,
-`🏢 TIENDA OFICIAL
-
-Seleccione una opción:`,
+`🏢 TIENDA OFICIAL`,
 {
   reply_markup: {
     inline_keyboard: [
-      [{ text: "🛍 Comprar", callback_data: "buy" }],
-      [{ text: "💬 Soporte", callback_data: "support" }]
+      [{ text: "🛍 Comprar", callback_data: "BUY" }],
+      [{ text: "💬 Soporte", callback_data: "SUPPORT" }]
     ]
   }
 });
@@ -32,128 +30,103 @@ Seleccione una opción:`,
 bot.on('callback_query', (q) => {
   const chatId = q.message.chat.id;
 
-  // 🛍 COMPRA
-  if (q.data === "buy") {
+  if (q.data === "BUY") {
     state[chatId] = "PRODUCT";
     order[chatId] = {};
 
-    bot.sendMessage(chatId,
-`📦 Escribe el producto que deseas comprar:`);
+    bot.sendMessage(chatId, "📦 Escribe el producto:");
   }
 
-  // 💬 SOPORTE
-  if (q.data === "support") {
+  if (q.data === "SUPPORT") {
     state[chatId] = "SUPPORT";
 
-    bot.sendMessage(chatId,
-`💬 SOPORTE
-
-Escribe tu duda o problema y será enviado directamente al administrador.`);
+    bot.sendMessage(chatId, "💬 Escribe tu mensaje de soporte:");
   }
 
   bot.answerCallbackQuery(q.id);
 });
 
-// 🟢 FLUJO PRINCIPAL
+// 🟢 MENSAJES (CONTROLADO BIEN)
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
-  if (!state[chatId]) return;
+  if (!text || text.startsWith('/start')) return;
 
-  // 📦 PRODUCTO
-  if (state[chatId] === "PRODUCT") {
+  const step = state[chatId];
+
+  // 🔵 COMPRA
+  if (step === "PRODUCT") {
     order[chatId].product = text;
     state[chatId] = "ADDRESS";
 
-    return bot.sendMessage(chatId,
-`📍 Escribe tu dirección completa:`);
+    return bot.sendMessage(chatId, "📍 Escribe tu dirección:");
   }
 
-  // 📍 DIRECCIÓN
-  if (state[chatId] === "ADDRESS") {
+  if (step === "ADDRESS") {
     order[chatId].address = text;
     state[chatId] = "PAYMENT";
 
+    // 🔥 AQUÍ SE ARREGLA TU PROBLEMA (transferencia SI SALE)
     return bot.sendMessage(chatId,
-`💳 Método de pago:
+`💳 MÉTODOS DE PAGO
 
 • Transferencia
 • Depósito
 
-Escribe tu opción:`);
+Responde con tu opción`);
   }
 
-  // 💳 PAGO
-  if (state[chatId] === "PAYMENT") {
+  if (step === "PAYMENT") {
     order[chatId].payment = text;
     state[chatId] = "PROOF";
 
     return bot.sendMessage(chatId,
-`🏦 DATOS BANCARIOS:
+`🏦 DATOS PARA TRANSFERENCIA:
 
 Cuenta: 728969000086679496
 Banco: STP
 Nombre: julio escalera ortiz
 Concepto: Escolar
 
-📩 Envía tu comprobante de pago`);
+📩 Envía tu comprobante`);
   }
 
-  // 📩 COMPROBANTE → ADMIN
-  if (state[chatId] === "PROOF") {
+  if (step === "PROOF") {
 
-    const orderId = Math.floor(Math.random() * 100000);
+    const id = Math.floor(Math.random() * 100000);
 
     bot.sendMessage(chatId,
-`✅ Pedido confirmado
-
-🧾 ID: #${orderId}
-📦 En revisión`);
+`✅ Pedido recibido
+🧾 ID: #${id}`);
 
     bot.sendMessage(ADMIN_ID,
-`🚨 NUEVO PEDIDO #${orderId}
+`🚨 NUEVO PEDIDO #${id}
 
-🛍 Producto:
-${order[chatId].product}
+🛍 ${order[chatId].product}
+📍 ${order[chatId].address}
+💳 ${order[chatId].payment}
+📩 ${text}`);
 
-👤 Cliente:
-${chatId}
-
-📍 Dirección:
-${order[chatId].address}
-
-💳 Pago:
-${order[chatId].payment}
-
-📩 Comprobante:
-${text}`);
-
-    state[chatId] = null;
+    state[chatId] = "MENU";
     return;
   }
 
-  // 💬 SOPORTE DIRECTO A TI
-  if (state[chatId] === "SUPPORT") {
+  // 🔴 SOPORTE (ARREGLADO DE VERDAD)
+  if (step === "SUPPORT") {
 
-    const ticketId = Math.floor(Math.random() * 100000);
+    const ticket = Math.floor(Math.random() * 100000);
 
     bot.sendMessage(chatId,
-`✅ Mensaje enviado a soporte
-
-🧾 ID: #${ticketId}`);
+`✅ Soporte enviado
+🧾 ID: #${ticket}`);
 
     bot.sendMessage(ADMIN_ID,
-`💬 SOPORTE
+`💬 SOPORTE #${ticket}
 
-🧾 ID: #${ticketId}
+👤 ${chatId}
+📝 ${text}`);
 
-👤 Usuario:
-${chatId}
-
-📝 Mensaje:
-${text}`);
-
-    state[chatId] = null;
+    state[chatId] = "MENU";
   }
 });
