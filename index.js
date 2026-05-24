@@ -1,106 +1,107 @@
 const TelegramBot = require('node-telegram-bot-api');
 
-// 🔑 PON AQUÍ TU TOKEN NUEVO DE BOTFATHER
+// 🔑 TOKEN NUEVO
 const token = '8977522670:AAHoF-iVaCRNoMJxdcNE22L5Og5bKmDNkiA';
 
-// 👤 TU ID (ADMIN)
+// 👤 ADMIN (TE LLEGAN PEDIDOS)
 const ADMIN_ID = 8071793611;
 
 const bot = new TelegramBot(token, { polling: true });
 
-// estados
 let step = {};
 let order = {};
 
-// 🟢 START
+// 🟢 INICIO
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
   bot.sendMessage(chatId,
-`👋 Bienvenido a la tienda
+`🏢 Bienvenido a nuestra tienda
 
-🛍 Elige una opción:`,
+Selecciona una opción:`,
   {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🛍 Ver producto", callback_data: "product" }],
-        [{ text: "👨‍💻 Soporte", url: "https://t.me/MIAUGR9" }]
+        [
+          {
+            text: "🛍 Ver catálogo",
+            web_app: { url: "https://TU-PAGINA-WEB.com" }
+          }
+        ],
+        [
+          { text: "👨‍💻 Soporte", url: "https://t.me/julioescaleraortiz" }
+        ]
       ]
     }
   });
 });
 
-// 🛍 PRODUCTO Y COMPRA
+// 🛒 INICIO COMPRA (desde web o botón)
 bot.on('callback_query', (query) => {
   const chatId = query.message.chat.id;
 
-  // mostrar producto
-  if (query.data === "product") {
-    bot.sendMessage(chatId,
-`🛍 Producto: Wax Premium
-💰 Precio: $200 MXN`,
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "🟢 COMPRAR", callback_data: "buy" }]
-        ]
-      }
-    });
-  }
-
-  // iniciar compra
   if (query.data === "buy") {
     step[chatId] = "address";
     order[chatId] = {};
 
     bot.sendMessage(chatId,
-`📦 Escribe tu dirección completa:
-Nombre, calle, colonia, ciudad, CP, teléfono`);
+`📍 Dirección de envío:
+
+Nombre completo
+Calle y número
+Colonia
+Ciudad
+Código postal
+Teléfono`);
   }
 
   bot.answerCallbackQuery(query.id);
 });
 
-// 📦 FLUJO DE COMPRA
+// 📦 FLUJO COMPLETO
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
   if (!step[chatId]) return;
 
-  // dirección
+  // 📍 DIRECCIÓN
   if (step[chatId] === "address") {
     order[chatId].address = text;
     step[chatId] = "payment";
 
     bot.sendMessage(chatId,
-`💳 Métodos de pago:
-Transferencia / PayPal / Depósito
+`💳 MÉTODOS DE PAGO:
 
-📩 Envía tu comprobante`);
+• Transferencia bancaria
+• PayPal
+• Depósito
+
+📩 Envía tu comprobante de pago`);
     return;
   }
 
-  // comprobante
+  // 💳 COMPROBANTE
   if (step[chatId] === "payment") {
     order[chatId].proof = text;
     step[chatId] = "done";
 
-    const orderId = Math.floor(Math.random() * 10000);
+    const orderId = Math.floor(Math.random() * 100000);
 
-    // cliente
+    // 👤 CLIENTE
     bot.sendMessage(chatId,
 `✅ Pedido confirmado
-ID: #${orderId}
-Un asesor te contactará 👨‍💻`);
 
-    // admin (tú)
+🧾 ID: #${orderId}
+📦 En breve te contactaremos`);
+
+    // 👨‍💻 ADMIN (TE LLEGA A TI)
     bot.sendMessage(ADMIN_ID,
 `🚨 NUEVO PEDIDO #${orderId}
 
-👤 Usuario: ${chatId}
+👤 Cliente: ${chatId}
 
-📦 Dirección:
+📍 Dirección:
 ${order[chatId].address}
 
 💳 Comprobante:
