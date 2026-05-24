@@ -12,7 +12,7 @@ let order = {};
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  state[chatId] = "MENU";
+  state[chatId] = null;
 
   bot.sendMessage(chatId,
 `🏢 TIENDA OFICIAL`,
@@ -20,7 +20,7 @@ bot.onText(/\/start/, (msg) => {
   reply_markup: {
     inline_keyboard: [
       [{ text: "🛍 Comprar", callback_data: "BUY" }],
-      [{ text: "💬 Soporte", callback_data: "SUPPORT" }]
+      [{ text: "💬 Soporte", url: "https://t.me/julioescaleraortiz" }]
     ]
   }
 });
@@ -34,51 +34,12 @@ bot.on('callback_query', (q) => {
     state[chatId] = "PRODUCT";
     order[chatId] = {};
 
-    bot.sendMessage(chatId, "📦 Escribe el producto:");
+    bot.sendMessage(chatId, "📦 Escribe el producto que deseas:");
   }
 
-  if (q.data === "SUPPORT") {
-    state[chatId] = "SUPPORT";
-
-    bot.sendMessage(chatId, "💬 Escribe tu mensaje de soporte:");
-  }
-
-  bot.answerCallbackQuery(q.id);
-});
-
-// 🟢 MENSAJES (CONTROLADO BIEN)
-bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  const text = msg.text;
-
-  if (!text || text.startsWith('/start')) return;
-
-  const step = state[chatId];
-
-  // 🔵 COMPRA
-  if (step === "PRODUCT") {
-    order[chatId].product = text;
-    state[chatId] = "ADDRESS";
-
-    return bot.sendMessage(chatId, "📍 Escribe tu dirección:");
-  }
-
-  if (step === "ADDRESS") {
-    order[chatId].address = text;
-    state[chatId] = "PAYMENT";
-
-    // 🔥 AQUÍ SE ARREGLA TU PROBLEMA (transferencia SI SALE)
-    return bot.sendMessage(chatId,
-`💳 MÉTODOS DE PAGO
-
-• Transferencia
-• Depósito
-
-Responde con tu opción`);
-  }
-
-  if (step === "PAYMENT") {
-    order[chatId].payment = text;
+  // 💰 PAGO TRANSFERENCIA
+  if (q.data === "TRANSFERENCIA") {
+    order[chatId].payment = "Transferencia";
     state[chatId] = "PROOF";
 
     return bot.sendMessage(chatId,
@@ -92,41 +53,83 @@ Concepto: Escolar
 📩 Envía tu comprobante`);
   }
 
+  // 🏧 PAGO DEPÓSITO
+  if (q.data === "DEPOSITO") {
+    order[chatId].payment = "Depósito";
+    state[chatId] = "PROOF";
+
+    return bot.sendMessage(chatId,
+`🏦 DATOS PARA DEPÓSITO:
+
+Cuenta: 728969000086679496
+Banco: STP
+Nombre: julio escalera ortiz
+Concepto: Escolar
+
+📩 Envía tu comprobante`);
+  }
+
+  bot.answerCallbackQuery(q.id);
+});
+
+// 🟢 FLUJO PRINCIPAL
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  if (!text || text.startsWith('/start')) return;
+
+  const step = state[chatId];
+
+  // 📦 PRODUCTO
+  if (step === "PRODUCT") {
+    order[chatId].product = text;
+    state[chatId] = "ADDRESS";
+
+    return bot.sendMessage(chatId, "📍 Escribe tu dirección completa:");
+  }
+
+  // 📍 DIRECCIÓN → BOTONES DE PAGO
+  if (step === "ADDRESS") {
+    order[chatId].address = text;
+    state[chatId] = "PAYMENT";
+
+    return bot.sendMessage(chatId,
+`💳 Selecciona método de pago:`,
+{
+  reply_markup: {
+    inline_keyboard: [
+      [{ text: "💰 Transferencia", callback_data: "TRANSFERENCIA" }],
+      [{ text: "🏧 Depósito", callback_data: "DEPOSITO" }]
+    ]
+  }
+});
+  }
+
+  // 📩 COMPROBANTE → ADMIN
   if (step === "PROOF") {
 
     const id = Math.floor(Math.random() * 100000);
 
     bot.sendMessage(chatId,
-`✅ Pedido recibido
+`✅ Pedido confirmado
 🧾 ID: #${id}`);
 
     bot.sendMessage(ADMIN_ID,
 `🚨 NUEVO PEDIDO #${id}
 
-🛍 ${order[chatId].product}
-📍 ${order[chatId].address}
-💳 ${order[chatId].payment}
-📩 ${text}`);
+🛍 Producto:
+${order[chatId].product}
 
-    state[chatId] = "MENU";
-    return;
-  }
+📍 Dirección:
+${order[chatId].address}
 
-  // 🔴 SOPORTE (ARREGLADO DE VERDAD)
-  if (step === "SUPPORT") {
+💳 Método:
+${order[chatId].payment}
 
-    const ticket = Math.floor(Math.random() * 100000);
+📩 Comprobante:
+${text}`);
 
-    bot.sendMessage(chatId,
-`✅ Soporte enviado
-🧾 ID: #${ticket}`);
-
-    bot.sendMessage(ADMIN_ID,
-`💬 SOPORTE #${ticket}
-
-👤 ${chatId}
-📝 ${text}`);
-
-    state[chatId] = "MENU";
+    state[chatId] = null;
   }
 });
