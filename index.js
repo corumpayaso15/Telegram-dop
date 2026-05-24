@@ -5,7 +5,7 @@ const ADMIN_ID = 8071793611;
 
 const bot = new TelegramBot(token, { polling: true });
 
-// 📦 estados separados
+// 📦 estados
 let state = {};
 let order = {};
 
@@ -27,6 +27,7 @@ bot.onText(/\/start/, (msg) => {
 });
 });
 
+// 🟢 BOTONES
 bot.on('callback_query', (q) => {
   const chatId = q.message.chat.id;
 
@@ -46,14 +47,14 @@ bot.on('callback_query', (q) => {
   bot.answerCallbackQuery(q.id);
 });
 
-// 📩 MENSAJES ORDENADOS
+// 🟢 FLUJO ORDENADO
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
   if (!state[chatId]) return;
 
-  // 🛍 PRODUCTO
+  // 📦 PRODUCTO
   if (state[chatId] === "PRODUCT") {
     order[chatId].product = text;
     state[chatId] = "ADDRESS";
@@ -68,6 +69,7 @@ bot.on('message', (msg) => {
 
     return bot.sendMessage(chatId,
 `💳 Método de pago:
+
 • Transferencia
 • Depósito
 
@@ -80,9 +82,9 @@ Escribe tu opción:`);
     state[chatId] = "PROOF";
 
     return bot.sendMessage(chatId,
-`🏦 DATOS:
+`🏦 DATOS BANCARIOS:
 
-728969000086679496
+Cuenta: 728969000086679496
 Banco: STP
 Nombre: julio escalera ortiz
 Concepto: Escolar
@@ -90,7 +92,7 @@ Concepto: Escolar
 📩 Envía tu comprobante`);
   }
 
-  // 📩 COMPROBANTE
+  // 📩 COMPROBANTE → ADMIN
   if (state[chatId] === "PROOF") {
 
     const orderId = Math.floor(Math.random() * 100000);
@@ -102,9 +104,11 @@ Concepto: Escolar
     bot.sendMessage(ADMIN_ID,
 `🚨 NUEVO PEDIDO #${orderId}
 
-🛍 Producto: ${order[chatId].product}
+🛍 Producto:
+${order[chatId].product}
 
-👤 Cliente: ${chatId}
+👤 Cliente:
+${chatId}
 
 📍 Dirección:
 ${order[chatId].address}
@@ -119,7 +123,7 @@ ${text}`);
     return;
   }
 
-  // 💬 SOPORTE (SEPARADO Y LIMPIO)
+  // 💬 SOPORTE (DIRECTO A TI)
   if (state[chatId] === "SUPPORT") {
 
     bot.sendMessage(chatId, "✅ Mensaje enviado a soporte.");
